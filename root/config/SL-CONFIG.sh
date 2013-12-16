@@ -1,5 +1,5 @@
-export LAB_ROOT=/home/matjaz/sl-new/root
-export PROG_ROOT=/home/matjaz/sl-new/user
+export LAB_ROOT=/home/slhoap/sl-new/root
+export PROG_ROOT=/home/slhoap/sl-new/root
  
 export HOST=`hostname` 
 

@@ -21,8 +21,13 @@
 
 ****************************************************************************/
 
+#include "../makefiles/ImakeCPPrules.tmpl"
+
+INCLUDE_SUBDIRS = $(shell find $(SRCDIR) -type d | grep -v svn | sed 's/\(.*\)/-I\1/' | tr "\n" " ")
+
 INCLUDES               = -I../src \
 			 -I../include \
+			 $(INCLUDE_SUBDIRS) \
 			 -I$(MY_INCLUDES) \
 			 -I$(LAB_INCLUDES) \
 		         -I$(LAB_ROOT)/hoap3/include \
@@ -31,6 +36,7 @@ INCLUDES               = -I../src \
                          -I/sw/include \
                          -I/usr/X11/include \
                          -I/usr/local/glut/include
+                         
 CFLAGS                 = $(OPTIMIZE_CC_FLAGS) $(INCLUDES) -D$(MACHTYPE)
 SRCDIR                 = ../src
 LIBDIR                 = $(MY_LIBDIR)/$(MACHTYPE)
@@ -43,11 +49,16 @@ LIB_TASK      = -lhoap3_task -lhoap3 -lSLtask -lSLcommon -lutility $(COMM_LIBRAR
 LIB_OPENGL    = -lhoap3_openGL -lhoap3 -lSLopenGL -lSLcommon -lutility $(COMM_LIBRARIES) -lm  $(OPENGL_LIBRARIES)
 LIB_SIM       = -lhoap3_simulation -lhoap3 -lSLsimulation -lSLcommon -lutility $(COMM_LIBRARIES) -lm
 
+/*c sorce rocna dodas sem:*/
 SRCS_XHOAP3  = \
-	initUserTasks.c 
+	initUserTasks.c sample_task.c euler_angles.c
 
 OBJS_XHOAP3  = \
-	initUserTasks.o 
+	initUserTasks.o sample_task.o euler_angles.o
+
+
+/*SRCS_XHOAP3 = $(shell find $(SRCDIR) -regex "[^\#]*\.c" -printf "%P ") to bi slo, ce najdes regex, ki vkljuci vse .c razen initUserGraphics in initUserSimulation  
+OBJS_XHOAP3 = $(patsubst %.cpp,%.o,$(SRCS_XHOAP3)) */
 
 SRCS_XOPENGL  = \
 	initUserGraphics.c
@@ -61,20 +72,27 @@ SRCS_XSIM  = \
 OBJS_XSIM  = \
 	initUserSimulation.o
 
-
+CPP_SRCS_XHOAP3 = $(shell find $(SRCDIR) -regex "[^\#]*\.cpp" -printf "%P ")
+CPP_OBJS_XHOAP3 = $(patsubst %.cpp,%.o,$(CPP_SRCS_XHOAP3))
+	
 SOURCES = $(SRCS_XHOAP3) $(SRCS_XOPENGL) $(SRCS_XSIM) 
 
 OBJECTS = $(OBJS_XHOAP3) $(OBJS_XOPENGL) $(OBJS_XSIM) 
+
+CPPOBJECTS = $(CPP_OBJS_XHOAP3)
+
 HEADERS = 
 
 InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xhoap3,$(BINDIR))
 InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xmotor,$(BINDIR))
 InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xvision,$(BINDIR))
 
-ProgramListTarget( xtask, $(OBJS_XHOAP3),$(LIB_TASK) )
+/*ProgramListTarget( xtask, $(OBJS_XHOAP3),$(LIB_TASK) )*/
+CPPProgramListTarget( xtask, $(OBJS_XHOAP3) $(CPPOBJECTS) ,$(LIB_TASK) )
+
 ProgramListTarget( xopengl, $(OBJS_XOPENGL), $(LIB_OPENGL) )
 ProgramListTarget( xsimulation, $(OBJS_XSIM), $(LIB_SIM) )
 
 NormalObjRule( $(OBJECTS) )
-
+NormalCPPObjRule( $(CPPOBJECTS) )
 

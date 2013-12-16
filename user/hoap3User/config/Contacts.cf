@@ -21,10 +21,10 @@
 */
 
 
-R_HIP_R		R_KNEE		1	5	orth	orth
+R_HIP		R_KNEE		1	5	orth	orth
 R_KNEE		R_ANKLE		1	5	orth	orth
 
-L_HIP_R		L_KNEE		1	5	orth	orth
+L_HIP		L_KNEE		1	5	orth	orth
 L_KNEE		L_ANKLE		1	5	orth	orth
 
 L_IN_TOE	L_IN_HEEL	1	5	full	full
@@ -32,8 +32,18 @@ L_IN_HEEL	L_OUT_HEEL	1	5	full	full
 L_OUT_HEEL	L_OUT_TOE	1	5	full	full
 L_OUT_TOE	L_IN_TOE	1	5	full	full
 
-R_IN_TOE	R_IN_HEEL	1	5	full	full
-R_IN_HEEL	R_OUT_HEEL	1	5	full	full
-R_OUT_HEEL	R_OUT_TOE	1	5	full	full
-R_OUT_TOE	R_IN_TOE	1	5	full	full
+R_IN_TOE	R_IN_HEEL	1	5	orth	orth
+R_IN_HEEL	R_OUT_HEEL	1	5	orth	orth
+R_OUT_HEEL	R_OUT_TOE	1	5	orth	orth
+R_OUT_TOE	R_IN_TOE	1	5	orth	orth
 
+L_PT		L_UA		1	5	orth	orth
+L_UA		L_SH		1	5	full	orth
+
+R_PT		R_UA		1	5	orth	orth
+R_UA		R_SH		1	5	orth	orth
+
+R_HIP		R_SH		1	5	orth	orth
+L_HIP		L_SH		1	5	orth	orth
+
+H_1		B_LINK_1	1	5	orth	orth

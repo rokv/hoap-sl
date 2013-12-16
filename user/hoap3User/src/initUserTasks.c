@@ -11,6 +11,7 @@ Remarks:
 
 ============================================================================*/
 
+
 #include "SL.h"
 #include "SL_user.h"
 #include "SL_integrate.h"
@@ -45,10 +46,24 @@ initUserTasks(void)
 
 {
 
-  extern void add_test_task();
-
-  add_test_task();
-  // freezeBase(TRUE);
+   //extern void add_test_task();
+	extern void add_sample_task();
+	add_sample_task();
+	extern void add_sample_task_cpp();
+	add_sample_task_cpp();
+	extern void add_kinect_playback_task_cpp();
+	add_kinect_playback_task_cpp();
+	
+	extern void add_kinect_playback_r_task_cpp();
+	add_kinect_playback_r_task_cpp();
+	
+	
+	 extern void add_hoapSend_task_cpp();
+	 add_hoapSend_task_cpp();
+   //add_test_task();
+   freezeBase(TRUE);
+   changeRealTime(TRUE);
+   
   // setG();
 
   sprintf(initial_user_command,"go0");

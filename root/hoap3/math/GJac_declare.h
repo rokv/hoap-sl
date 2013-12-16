@@ -1,1 +1,2 @@
-./hoap3_GJac_declare.h
+double  Jlist[2+1][47+1];
+
