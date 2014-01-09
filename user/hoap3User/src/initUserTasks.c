@@ -57,9 +57,15 @@ initUserTasks(void)
 	extern void add_kinect_playback_r_task_cpp();
 	add_kinect_playback_r_task_cpp();
 	
+	extern void add_kinect_pb_avoidance_task_cpp();
+	add_kinect_pb_avoidance_task_cpp();
 	
 	 extern void add_hoapSend_task_cpp();
 	 add_hoapSend_task_cpp();
+
+	 extern void add_avoidance_task_cpp();
+	 add_avoidance_task_cpp();
+
    //add_test_task();
    freezeBase(TRUE);
    changeRealTime(TRUE);

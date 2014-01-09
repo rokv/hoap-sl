@@ -2052,7 +2052,7 @@ predictLWPROutputConf(int ID, double *x_w, double *x, double cutoff,
 }
 
 double
-predictLWPROutput(int ID, double *x_w, double *x, double cutoff, 
+predictLWPROutput(int ID, double *x_w, double *x, double cutoff,
 		  int blend, double *y, int *rfID)
      
 {

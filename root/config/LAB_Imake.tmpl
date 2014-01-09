@@ -84,19 +84,23 @@
 
 #ifndef SysIncludeDirs
 #ifdef powerpc
-#define SysIncludeDirs   -I/sw/include -I/opt/local/include -I/usr/include -I/usr/X11/include 
+#define SysIncludeDirs   -I/usr/X11/include -I/opt/local/include -I/sw/include -I/usr/include 
 #endif
 #ifdef i586
 #define SysIncludeDirs   -I/usr/include
 #endif
 #ifdef i386mac
-#define SysIncludeDirs   -I/sw/include -I/opt/local/include -I/usr/include -I/usr/X11/include 
+#define SysIncludeDirs   -I/usr/X11/include -I/opt/local/include -I/sw/include -I/usr/include 
 #endif
 #ifdef x86_64mac
-#define SysIncludeDirs   -I/sw/include -I/opt/local/include -I/usr/include -I/usr/X11/include 
+#define SysIncludeDirs   -I/usr/X11/include -I/opt/local/include -I/sw/include -I/usr/include 
 #endif
 #ifdef i486xeno
-#define SysIncludeDirs   $(shell $(XENOMAI_ROOT)/bin/xeno-config --posix-cflags)
+/* #define SysIncludeDirs   $(shell $(XENOMAI_ROOT)/bin/xeno-config --posix-cflags) */
+#define SysIncludeDirs   $(shell $(XENOMAI_ROOT)/bin/xeno-config --skin=native --cflags)
+#endif
+#ifdef x86_64xeno
+#define SysIncludeDirs   $(shell $(XENOMAI_ROOT)/bin/xeno-config --skin=native --cflags)
 #endif
 #ifndef SysIncludeDirs
 #define SysIncludeDirs
@@ -111,10 +115,6 @@
 #endif
 #endif
 
-#ifndef SysManDir
-#define SysManDir        /usr/man
-#endif
-
 #ifndef SysLdFlags
 #ifdef i486xeno
 #define SysLdFlags       -L/usr/X11/lib
@@ -122,8 +122,11 @@
 #ifdef x86_64
 #define SysLdFlags       -L/usr/X11/lib64 -L/usr/X11/lib
 #endif
+#ifdef x86_64xeno
+#define SysLdFlags       -L/usr/X11/lib64 -L/usr/X11/lib
+#endif
 #ifndef SysLdFlags
-#define SysLdFlags       -L/opt/local/lib -L/sw/lib -L/usr/X11/lib
+#define SysLdFlags       -L/sw/lib -L/usr/X11/lib -L/opt/local/lib 
 #endif
 #endif
 
@@ -141,15 +144,14 @@
 #define SysLibraries    -lreadline -lcurses
 #endif
 #ifdef i486xeno
-#define SysLibraries    $(shell $(XENOMAI_ROOT)/bin/xeno-config --posix-ldflags) -lnative -lrtdk -lrtdm -lreadline -lcurses
+#define SysLibraries    $(shell $(XENOMAI_ROOT)/bin/xeno-config --skin=native --ldflags) -lnative -lrtdk -lanalogy -lrtdm -lreadline -lcurses
+#endif
+#ifdef x86_64xeno
+#define SysLibraries    $(shell $(XENOMAI_ROOT)/bin/xeno-config --skin=native --ldflags) -lnative -lrtdk -lanalogy -lrtdm -lreadline -lcurses
 #endif
 #ifndef SysLibraries
 #define SysLibraries     -lpthread -lrt -lreadline -lcurses
 #endif
-#endif
-
-#ifndef DevDir
-#define DevDir /projects
 #endif
 
 /*
@@ -164,16 +166,16 @@
 #define ImakeCmd imake -D$(MACHTYPE)
 #endif
 
-#ifndef ImakeDefines
-#define ImakeDefines
-#endif
-
 #ifndef ArCmd
 #define ArCmd ar cq
 #endif
 
 #ifndef CcCmd
 #define CcCmd gcc
+#endif
+
+#ifndef CcppCmd
+#define CcppCmd g++
 #endif
 
 #ifndef PPCArCmd
@@ -326,7 +328,7 @@
 #endif
 
 #ifndef NormalCcFlags
-#define NormalCcFlags  -D$(MACHTYPE) -D$(LAB) -DUNIX -Wall -Wno-unused -Wno-strict-aliasing
+#define NormalCcFlags  -D$(MACHTYPE) -D$(LAB) -DUNIX -Wall -Wno-unused -Wno-strict-aliasing -Wno-write-strings
 #endif
 
 #ifndef AnsiCcFlags
@@ -346,13 +348,13 @@
 #define OptimizeCcFlags -O3  -mfpmath=sse -ffast-math -fprefetch-loop-arrays -funit-at-a-time
 #endif
 #ifdef x86_64
-#define OptimizeCcFlags -O3  -mfpmath=sse -ffast-math -fprefetch-loop-arrays -funit-at-a-time -fomit-frame-pointer
+#define OptimizeCcFlags -O3  -mfpmath=sse -ffast-math -fprefetch-loop-arrays -funit-at-a-time -fomit-frame-pointer -fPIC
 #endif
 #ifdef powerpc
 #define OptimizeCcFlags -O3  -funit-at-a-time
 #endif
 #ifdef x86_64mac
-#define OptimizeCcFlags -O3  -mfpmath=sse -ffast-math -fprefetch-loop-arrays -funit-at-a-time
+#define OptimizeCcFlags -O3  -mfpmath=sse -ffast-math -fprefetch-loop-arrays -funit-at-a-time -fPIC
 #endif
 #ifndef OptimizeCcFlags
 #define OptimizeCcFlags -O3  -ffast-math -funit-at-a-time
@@ -367,6 +369,9 @@
 #define MatlabCcFlags -DMATLAB_MEX_FILE -fPIC -D_GNU_SOURCE -pthread
 #endif
 #ifdef x86_64
+#define MatlabCcFlags -DMATLAB_MEX_FILE -fPIC -D_GNU_SOURCE -pthread
+#endif
+#ifdef x86_64xeno
 #define MatlabCcFlags -DMATLAB_MEX_FILE -fPIC -D_GNU_SOURCE -pthread
 #endif
 #ifdef sparc
@@ -397,6 +402,9 @@
 #define CommLibraries -lnsl
 #endif
 #ifdef x86_64
+#define CommLibraries -lnsl
+#endif
+#ifdef x86_64xeno
 #define CommLibraries -lnsl
 #endif
 #ifdef sparc
@@ -547,10 +555,10 @@
 #define OpenGLLibraries -L/opt/local/lib -L/sw/lib -lglut -lGL -lGLU -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -lX11
 #else
 #ifdef i386mac
-#define OpenGLLibraries -L/opt/local/lib -L/sw/lib -lglut -lGL -lGLU -lX11
+#define OpenGLLibraries -lglut -lGL -lGLU -lX11
 #else
 #ifdef x86_64mac
-#define OpenGLLibraries -L/opt/local/lib -L/sw/lib -lglut -lGL -lGLU -lX11
+#define OpenGLLibraries -lglut -lGL -lGLU -lX11
 #else
 #define OpenGLLibraries -lglut -lGL -lGLU -lX11 -lXmu
 #endif
@@ -578,12 +586,18 @@
 #define DependDefines /* As nothing */
 #endif
 
+#ifndef GCCDependDefines
+#define GCCDependDefines -MD -MP -MF $*.d 
+#endif
+
 
 /*
  *  Other defines for general use.
  */
 
-#define FilesToClean *.CKP *.ln *.BAK *.bak *.o core errs ,* *~ *.a .emacs_* tags TAGS make.log MakeOut *.68k *.ppc *.x40 *.map
+#define FilesToCleanFind \( -name "*.CKP" -or -name "*.ln" -or -name "*.BAK" -or -name "*.bak" -or -name "*.o" -or -name "*.d" -or -name "core" -or -name "errs" -or -name ",*" -or -name "*~" -or -name "*.a" -or -name ".emacs_*" -or -name "TAGS" -or -name "make.log" -or -name "MakeOut" -or -name "*.68k" -or -name "*.ppc" -or -name "*.x40" -or -name "*.map" \)
+
+#define FilesToClean *.CKP *.ln *.BAK *.bak *.o core errs ,* *~ *.a .emacs_* TAGS make.log MakeOut *.68k *.ppc *.x40 *.map
 
 
 /******************************************************************************
@@ -596,6 +610,7 @@
             IMAKE = ImakeCmd
                AR = ArCmd
                CC = CcCmd
+             CCPP = CcppCmd
             C40AR = C40ArCmd
             C40CC = C40CcCmd
              VXAR = VXArCmd
@@ -633,24 +648,27 @@
      INSTDOCFLAGS = InstDocFlags
   RANLIBINSTFLAGS = RanlibInstFlags
 
-  NORMAL_CC_FLAGS = NormalCcFlags -mcpu=$(MACHTYPE)
+  NORMAL_CC_FLAGS = NormalCcFlags -march=native -mtune=native
 #ifdef sparc
   NORMAL_CC_FLAGS = NormalCcFlags
 #endif
 #ifdef i386mac
-  NORMAL_CC_FLAGS = NormalCcFlags -mtune=generic
+  NORMAL_CC_FLAGS = NormalCcFlags -fnested-functions -march=native -msse3
 #endif
 #ifdef x86_64
-  NORMAL_CC_FLAGS = NormalCcFlags -m64 -march=native -mtune=native -msse3
+  NORMAL_CC_FLAGS = NormalCcFlags -m64 -march=native -mtune=native -fPIC
 #endif
 #ifdef i486
-  NORMAL_CC_FLAGS = NormalCcFlags -mtune=$(MACHTYPE)
+  NORMAL_CC_FLAGS = NormalCcFlags -march=native -mtune=native
 #endif
 #ifdef x86_64mac
-  NORMAL_CC_FLAGS = NormalCcFlags -m64 -mtune=native -msse3
+  NORMAL_CC_FLAGS = NormalCcFlags  -fnested-functions -m64 -mtune=native -msse3 -fPIC
 #endif
 #ifdef i486xeno
-  NORMAL_CC_FLAGS = NormalCcFlags -mtune=native -msse3
+  NORMAL_CC_FLAGS = NormalCcFlags -march=native -mtune=native
+#endif
+#ifdef x86_64xeno
+  NORMAL_CC_FLAGS = NormalCcFlags -m64 -march=native -mtune=native -fPIC
 #endif
 
 
@@ -694,7 +712,7 @@ OPTIMIZE_CC_FLAGS = OptimizeCcFlags
 
       LAB_DEFINES = LabDefines
      PROJ_DEFINES = ProjDefines
-    IMAKE_DEFINES = -TLAB_Imake.tmpl ImakeDefines
+    IMAKE_DEFINES = -TLAB_Imake.tmpl
 DIRECTORY_DEFINES = DirectoryDefines
 
     PROJ_IMAKEDIR = $(LAB_ROOT)/config
@@ -717,11 +735,10 @@ DIRECTORY_DEFINES = DirectoryDefines
 			$(SYS_LIBRARIES)
         CPP_FLAGS = $(ALLDEFINES)
     DEPENDDEFINES = DependDefines
+ GCCDEPENDDEFINES = GCCDependDefines
 
-        IMAKE_CMD = $(IMAKE) -I$(PROJ_IMAKEDIR)  \
-			$(IMAKE_DEFINES) $(DIRECTORY_DEFINES)
-       CLEANFILES = 
-           RM_CMD = $(RM) FilesToClean $(CLEANFILES)
+        IMAKE_CMD = $(IMAKE) -I$(PROJ_IMAKEDIR) $(IMAKE_DEFINES) $(DIRECTORY_DEFINES)
+           RM_CMD = find . FilesToCleanFind -exec rm {} \;
 
 
 /*
@@ -758,12 +775,11 @@ emptyrule::
 
 CleanTarget()
 MakefileTarget()
-TagsTarget()
 
 header::
 	@echo "Distribution of headers complete in `pwd`."
 
-DependTarget()
+/* DependTarget() */
 
 
 #ifdef IHaveSubdirs
@@ -772,14 +788,14 @@ DependTarget()
 /**/XCOMM
 
 InstallSubdirs($(SUBDIRS))
-InstallManSubdirs($(SUBDIRS))
+/*InstallManSubdirs($(SUBDIRS))*/
 /*InstallDocSubdirs($(SUBDIRS))*/
 DocSubdirs($(SUBDIRS))
 CleanSubdirs($(SUBDIRS))
 DistcleanSubdirs($(SUBDIRS))
-TagsSubdirs($(SUBDIRS))
+/*TagsSubdirs($(SUBDIRS))*/
 MakefileSubdirs($(SUBDIRS))
-DependSubdirs($(SUBDIRS))
+/* DependSubdirs($(SUBDIRS))*/
 MakeSubdirs($(SUBDIRS))
 HeaderSubdirs($(SUBDIRS))
 

@@ -123,7 +123,6 @@ typedef int*     iVector;
 typedef int**    iMatrix;
 typedef long*    liVector;
 typedef long**   liMatrix;
-typedef double*  Segment;
 
 /* additional info for my matrices and vectors */
 

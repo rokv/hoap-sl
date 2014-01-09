@@ -349,7 +349,7 @@ setstate( arg_state )
  */
 
 long
-random()
+randomall()
 {
 	register struct _randomjunk *rp = _randomjunk();
 	long		i;

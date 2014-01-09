@@ -86,6 +86,9 @@ HEADERS =
 InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xhoap3,$(BINDIR))
 InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xmotor,$(BINDIR))
 InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xvision,$(BINDIR))
+/*RHribar*/
+InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xrhoap3,$(BINDIR))
+InstallProgram($(LAB_ROOT)/hoap3/$(MACHTYPE)/xrmotor,$(BINDIR))
 
 /*ProgramListTarget( xtask, $(OBJS_XHOAP3),$(LIB_TASK) )*/
 CPPProgramListTarget( xtask, $(OBJS_XHOAP3) $(CPPOBJECTS) ,$(LIB_TASK) )

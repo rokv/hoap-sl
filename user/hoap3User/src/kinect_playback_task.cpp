@@ -195,12 +195,13 @@ int KinectPlayback::run()
 	double task_time = task_servo_time - start_time_;
 	char buffer[MAX_BUFFER];
 	double time_step = 1.0 / (double) task_servo_rate;
-	double body_TFE, body_TAA;
 	float degToRadian = PI/180;
 
-	#ifdef GENERATE_LEG_MOTION
-	#include "leg_playback1.h"
-	#endif
+	/*track=0;
+	joint_des_state[LA_J1].th= -PI/2;
+	joint_des_state[LA_J2].th= PI/2;
+	joint_des_state[LA_J3].th= 0;
+	joint_des_state[LA_J4].th= -PI/8;*/
 
 	// Check if new data from Kinect arrived
 	if (KinectReader(NULL, buffer) == 720)
@@ -227,8 +228,9 @@ int KinectPlayback::run()
 			else
 			{
 				// Filter Kinect data with a Butterworth filter
-				for (i = 1; i <= N_DOFS; i++)
+				for (i = 1; i <= N_DOFS; i++){
 					target_[i].th = filt(target_[i].th, &fth[i]);
+				}
 			}
 
 			last_kinect_time = task_time;
@@ -238,11 +240,14 @@ int KinectPlayback::run()
 			{
 				joint_range[RL_J3][MAX_THETA] = PI * 45.0 / 180.0;
 				joint_range[LL_J3][MAX_THETA] = PI * 45.0 / 180.0; //-
-				for (i = 1; i <= active_dofs[0]; i++)
-					if (joint_range[active_dofs[i]][MAX_THETA] < target_[active_dofs[i]].th)
+				for (i = 1; i <= active_dofs[0]; i++){
+					if (joint_range[active_dofs[i]][MAX_THETA] < target_[active_dofs[i]].th){
 						target_[active_dofs[i]].th = joint_range[active_dofs[i]][MAX_THETA];
-					else if (joint_range[active_dofs[i]][MIN_THETA] > target_[active_dofs[i]].th)
+					}
+					else if (joint_range[active_dofs[i]][MIN_THETA] > target_[active_dofs[i]].th){
 						target_[active_dofs[i]].th = joint_range[active_dofs[i]][MIN_THETA];
+					}
+				}
 
 				//kinect_velocities(task_time);
 				for (i = 1; i <= active_dofs[0]; i++)
@@ -386,6 +391,19 @@ void KinectPlayback::kinect2joint(char buffer[])
 {
 	int i, j, k;
 	char *buffer_pt;
+
+	double dq[3+1];
+	double** A;
+	double** V;
+	double* s;
+	A=my_matrix(1, 3 , 1, 3);
+	V=my_matrix(1, 3 , 1, 3);
+	s=my_vector(1, 3);
+	double epsilon;
+	double s_max;
+	double s_min;
+	double rank;
+
 
 	double tmp_rot[3][4], tmp_rot2[3][4];
 	double elbNum, elbDen; //elbow numerator, denumerator
@@ -534,30 +552,137 @@ void KinectPlayback::kinect2joint(char buffer[])
                   my_SQR(joint_pose[7][1][3]-joint_pose[8][1][3]) +
                   my_SQR(joint_pose[7][2][3]-joint_pose[8][2][3]));
 
-    newOutAngs.w = -(acos(elbNum/elbDen) - PI);
+    double elbow = -(acos(elbNum/elbDen) - PI);
 
     // Shoulder:
     matMultABt(joint_pose[2], joint_pose[6], tmp_rot);
 
-    for (i = 0; i < 3; ++i)
-    	for (j = 0; j < 4; ++j)
-    		R[i][j] = tmp_rot[i][j];
-    R[3][0] = R[3][1] = R[3][2] = 0.0f; R[3][3] = 1.0f;
+    //switch to 1-indexing
+    double R_kin[3+1][3+1];
+    for (i=1; i<=3; ++i){
+    	for (j=1; j<=3; ++j){
+    		R_kin[i][j]=tmp_rot[j-1][i-1]; //T
+    	}
+    }
 
-    outAngs = Eul_FromHMatrix(R, EulOrdXZXr);
+    //get kinect (=desired) axis angle between torso and shoulder
+    double fi_kin=acos(1/2*(R_kin[1][1]+R_kin[2][2]+R_kin[3][3] - 1));
 
-    newOutAngs.x = -(outAngs.x - PI/2);
-    newOutAngs.y = -(outAngs.y + PI/2);
-    newOutAngs.z = outAngs.z;
+    double axis_fi_kin[3+1];
+    axis_fi_kin[1]= (R_kin[3][2]-R_kin[2][3]) / (2*sin(fi_kin)) * fi_kin;
+    axis_fi_kin[2]= (R_kin[1][3]-R_kin[3][1]) / (2*sin(fi_kin)) * fi_kin;
+    axis_fi_kin[3]= (R_kin[2][1]-R_kin[1][2]) / (2*sin(fi_kin)) * fi_kin;
 
-    correctAngsRightArm(&newOutAngs.x, &newOutAngs.y, &newOutAngs.z, &newOutAngs.w, &x, &y, &z, &w);
+    //get robot (=current) axis angle between torso and shoulder. C.s. need to be rotated the same way as kinect's (see ogrinc's report).
+    double R_torso[3+1][3+1];
+    double R_shoulder[3+1][3+1];
+    double R_current[3+1][3+1];
+    double R_temp[3+1][3+1];
 
-    target_[RA_J1].th = x;		// outAngs.x = first= X
-    target_[RA_J2].th = y;	// outAngs.y = 2nd= Z
-    target_[RA_J3].th = z;		// outAngs.z = 3rd= X
+    for (i=1; i<=3; ++i){
+    	for (j=1; j<=3; ++j){
+    		R_torso[i][j]=Alink[BASE][i][j];
+    	}
+    }
+    rotX(PI/2, R_torso, R_temp);
+    rotY(-PI/2, R_temp, R_torso);
 
-    target_[RA_J4].th = w;
-    printf("elbow = %f \n",target_[RA_J4].th*radToDegres);
+    for (i=1; i<=3; ++i){
+    	for (j=1; j<=3; ++j){
+    		R_temp[i][j]=Alink[R_UA][i][j];
+    	}
+    }
+    rotZ(joint_state[RA_J4].th, R_temp, R_shoulder); //to fix it to upper arm instead of elbow
+    rotY(-PI/2, R_shoulder, R_temp);
+    rotZ(PI/2, R_temp, R_shoulder);
+
+    matMultAtB13(R_shoulder, R_torso, R_current);
+
+    double fi_cur=acos(1/2*(R_current[1][1]+R_current[2][2]+R_current[3][3] - 1));
+
+    double axis_fi_cur[3+1];
+    axis_fi_cur[1]=(R_current[3][2]-R_current[2][3]) / (2*sin(fi_cur)) * fi_cur;
+    axis_fi_cur[2]=(R_current[1][3]-R_current[3][1]) / (2*sin(fi_cur)) * fi_cur;
+    axis_fi_cur[3]=(R_current[2][1]-R_current[1][2]) / (2*sin(fi_cur)) * fi_cur;
+
+    //needed change in orientation is the difference between current and desired
+    double step = 0.5;
+    double dp[3+1];
+    dp[1] = step* (axis_fi_kin[1] - axis_fi_cur[1]);
+    dp[2] = step* (axis_fi_kin[2] - axis_fi_cur[2]);
+    dp[3] = step* (axis_fi_kin[3] - axis_fi_cur[3]);
+
+    //maximum allowed norm of dp
+    double max_dp_norm=0.5;
+    if (sqrt(dp[1]*dp[1] + dp[2]*dp[2]+ dp[3]*dp[3]) > max_dp_norm){
+    	dp[1] *= max_dp_norm;
+    	dp[2] *= max_dp_norm;
+    	dp[3] *= max_dp_norm;
+    }
+
+    double newAxis[3+1];
+    double oldAxis[3+1];
+    if (  sqrt(dp[1]*dp[1] + dp[2]*dp[2] + dp[3]*dp[3]) < max_dp_norm *0.01  ){
+    	//if dp is very low do nothing, rarely happens due to oscilaltions
+		target_[RA_J1].th += 0;
+		target_[RA_J2].th += 0;
+		target_[RA_J3].th += 0;
+    }
+    else
+    {
+		//needed change in shoulder dq is given by jacobian, dq=J^-1 dp. Since we are dealing with rotation jacobian columns are equal to unit axes of joints.
+    	//the axes need to be in the same cs as the one used to get dp, given by R_torso.
+		for (i=1; i<=3; ++i){
+			oldAxis[i]=joint_axis_pos[RA_J1][i];
+		}
+		matTmultVec(R_torso, oldAxis, newAxis);
+		for (i=1; i<=3; ++i){
+			A[i][1]= - newAxis[i];
+		}
+
+		for (i=1; i<=3; ++i){
+			oldAxis[i]=joint_axis_pos[RA_J2][i];
+		}
+		matTmultVec(R_torso, oldAxis, newAxis);
+		for (i=1; i<=3; ++i){
+			A[i][2]= - newAxis[i];
+		}
+
+		for (i=1; i<=3; ++i){
+			oldAxis[i]=joint_axis_pos[RA_J3][i];
+		}
+		matTmultVec(R_torso, oldAxis, newAxis);
+		for (i=1; i<=3; ++i){
+			A[i][3]= - newAxis[i];
+		}
+
+		my_svdcmp(A, 3 , 3, s, V);
+		epsilon=0.01;
+		s_max = 0.0;  rank = 0;
+		for (j = 1; j <= 3; j++)
+			if (s[j] > s_max)
+				s_max = s[j];
+		s_min = s_max*epsilon;
+		for (j = 1; j <= 3; j++)
+			if (s[j] < s_min)
+				s[j] = 0.0;
+			else
+				rank++;
+		my_svbksb(A, s, V, 3, 3, dp, dq);
+
+
+		target_[RA_J1].th += dq[1];
+		target_[RA_J2].th += dq[2];
+		target_[RA_J3].th += dq[3];
+
+		target_[RA_J1].th = fmod(target_[RA_J1].th, (2*PI));
+		target_[RA_J2].th = fmod(target_[RA_J2].th, (2*PI));
+		target_[RA_J3].th = fmod(target_[RA_J3].th, (2*PI));
+
+
+    }
+
+    target_[RA_J4].th = elbow;
 
     ///// LEFT ARM /////////////////////////////////////////////////////
 
@@ -573,28 +698,221 @@ void KinectPlayback::kinect2joint(char buffer[])
                   my_SQR(joint_pose[4][1][3]-joint_pose[5][1][3]) +
                   my_SQR(joint_pose[4][2][3]-joint_pose[5][2][3]));
 
-    newOutAngs.w = (acos(elbNum/elbDen) - PI);
+    elbow = (acos(elbNum/elbDen) - PI);
 
     // Shoulder:
     matMultABt(joint_pose[2], joint_pose[3], tmp_rot);
-    for (i = 0; i < 3; ++i)
-    	for (j = 0; j < 4; ++j)
-    		R[i][j] = tmp_rot[i][j];
-    R[3][0] = R[3][1] = R[3][2] = 0.0f; R[3][3] = 1.0f;
+    //switch to 1-indexing
+    R_kin[3+1][3+1];
+    for (i=1; i<=3; ++i){
+    	for (j=1; j<=3; ++j){
+    		R_kin[i][j]=tmp_rot[j-1][i-1]; //T
+    	}
+    }
 
-    outAngs = Eul_FromHMatrix(R, EulOrdXZXr);
+    //get kinect (=desired) axis angle between torso and shoulder
+    fi_kin=acos(1/2*(R_kin[1][1]+R_kin[2][2]+R_kin[3][3] - 1));
 
-    newOutAngs.x = (outAngs.x + PI/2);
-    newOutAngs.y = (outAngs.y + PI/2);
-    newOutAngs.z = -(outAngs.z + PI);
+    axis_fi_kin[3+1];
+    axis_fi_kin[1]= (R_kin[3][2]-R_kin[2][3]) / (2*sin(fi_kin)) * fi_kin;
+    axis_fi_kin[2]= (R_kin[1][3]-R_kin[3][1]) / (2*sin(fi_kin)) * fi_kin;
+    axis_fi_kin[3]= (R_kin[2][1]-R_kin[1][2]) / (2*sin(fi_kin)) * fi_kin;
 
-    correctAngsLeftArm(&newOutAngs.x, &newOutAngs.y, &newOutAngs.z, &newOutAngs.w, &x, &y, &z, &w);
+    //get robot (=current) axis angle between torso and shoulder. C.s. need to be rotated the same way as kinect's (see ogrinc's report).
+    for (i=1; i<=3; ++i){
+    	for (j=1; j<=3; ++j){
+    		R_torso[i][j]=Alink[BASE][i][j];
+    	}
+    }
+    rotX(PI/2, R_torso, R_temp);
+    rotY(-PI/2, R_temp, R_torso);
 
-    //target_[LA_J1].th = x;		// outAngs.x = first= X
-    target_[LA_J2].th = y;	// outAngs.y = 2nd= Z
-    //target_[LA_J3].th = -z;		// outAngs.z = 3rd= X -/+ ???
+    for (i=1; i<=3; ++i){
+    	for (j=1; j<=3; ++j){
+    		R_temp[i][j]=Alink[L_UA][i][j];
+    	}
+    }
+    rotZ(-joint_state[LA_J4].th, R_temp, R_shoulder); //to fix it to upper arm instead of elbow
+    rotY(-PI/2, R_shoulder, R_temp);
+    rotZ(-PI/2, R_temp, R_shoulder);
 
-    target_[LA_J4].th = w;
+    matMultAtB13(R_shoulder, R_torso, R_current);
+
+    fi_cur=acos(1/2*(R_current[1][1]+R_current[2][2]+R_current[3][3] - 1));
+
+    axis_fi_cur[1]=(R_current[3][2]-R_current[2][3]) / (2*sin(fi_cur)) * fi_cur;
+    axis_fi_cur[2]=(R_current[1][3]-R_current[3][1]) / (2*sin(fi_cur)) * fi_cur;
+    axis_fi_cur[3]=(R_current[2][1]-R_current[1][2]) / (2*sin(fi_cur)) * fi_cur;
+
+    //needed change in orientation is the difference between current and desired
+    step = 0.5; //previously defined for right arm
+    dp[1] = step* (axis_fi_kin[1] - axis_fi_cur[1]);
+    dp[2] = step* (axis_fi_kin[2] - axis_fi_cur[2]);
+    dp[3] = step* (axis_fi_kin[3] - axis_fi_cur[3]);
+
+    //maximum allowed norm of dp
+    max_dp_norm=0.5; //previously defined for right arm
+    if (sqrt(dp[1]*dp[1] + dp[2]*dp[2]+ dp[3]*dp[3]) > max_dp_norm){
+    	dp[1] *= max_dp_norm;
+    	dp[2] *= max_dp_norm;
+    	dp[3] *= max_dp_norm;
+    }
+
+    if (  sqrt(dp[1]*dp[1] + dp[2]*dp[2] + dp[3]*dp[3]) < max_dp_norm *0.01  ){
+    	//if dp is very low do nothing, rarely happens due to oscilaltions
+    	target_[RA_J1].th += 0;
+    	target_[RA_J2].th += 0;
+    	target_[RA_J3].th += 0;
+    }
+    else
+    {
+    	//needed change in shoulder dq is given by jacobian, dq=J^-1 dp. Since we are dealing with rotation jacobian columns are equal to unit axes of joints.
+    	//the axes need to be in the same cs as the one used to get dp, given by R_torso.
+
+    	for (i=1; i<=3; ++i){
+    		oldAxis[i]=joint_axis_pos[LA_J1][i];
+    	}
+    	matTmultVec(R_torso, oldAxis, newAxis);
+    	for (i=1; i<=3; ++i){
+    		A[i][1]= - newAxis[i];
+    	}
+
+    	for (i=1; i<=3; ++i){
+    		oldAxis[i]=joint_axis_pos[LA_J2][i];
+    	}
+    	matTmultVec(R_torso, oldAxis, newAxis);
+    	for (i=1; i<=3; ++i){
+    		A[i][2]= - newAxis[i];
+    	}
+
+    	for (i=1; i<=3; ++i){
+    		oldAxis[i]=joint_axis_pos[LA_J3][i];
+    	}
+    	matTmultVec(R_torso, oldAxis, newAxis);
+    	for (i=1; i<=3; ++i){
+    		A[i][3]= - newAxis[i];
+    	}
+
+    	my_svdcmp(A, 3 , 3, s, V);
+    	epsilon=0.01;
+    	s_max = 0.0;  rank = 0;
+    	for (j = 1; j <= 3; j++)
+    		if (s[j] > s_max)
+    			s_max = s[j];
+    	s_min = s_max*epsilon;
+    	for (j = 1; j <= 3; j++)
+    		if (s[j] < s_min)
+    			s[j] = 0.0;
+    		else
+    			rank++;
+    	my_svbksb(A, s, V, 3, 3, dp, dq);
+
+
+    	target_[LA_J1].th += dq[1];
+    	target_[LA_J2].th += dq[2];
+    	target_[LA_J3].th += dq[3];
+
+    	target_[LA_J1].th = fmod(target_[LA_J1].th, (2*PI));
+    	target_[LA_J2].th = fmod(target_[LA_J2].th, (2*PI));
+    	target_[LA_J3].th = fmod(target_[LA_J3].th, (2*PI));
+
+    }
+
+
+    target_[LA_J4].th = elbow;
+
+
+
+    my_free_matrix(A, 1, 3, 1, 3);
+    my_free_matrix(V, 1, 3, 1, 3);
+    my_free_vector(s, 1, 3);
+}
+
+void KinectPlayback::matMultVec(double A[3+1][3+1], double B[3+1], double C[3+1])
+{//matrix multiplication A*b=c, index starts at 1.
+	int i, j;
+	for (i = 1; i <= 3; i++){
+		C[i] = 0;
+		for (j = 1; j <= 3; j++)
+		{
+			C[i] += A[i][j]*B[j];
+		}
+	}
+}
+
+void KinectPlayback::matTmultVec(double A[3+1][3+1], double B[3+1], double C[3+1])
+{//matrix multiplication A'*b=c, index starts at 1.
+	int i, j;
+	for (i = 1; i <= 3; i++){
+		C[i] = 0;
+		for (j = 1; j <= 3; j++)
+		{
+			C[i] += A[j][i]*B[j];
+		}
+	}
+}
+
+void KinectPlayback::matMultAtB13(double A[3+1][3+1], double B[3+1][3+1], double C[3+1][3+1])
+{//matrix multiplication A'*B=C, index starts at 1.
+int i, j, k;
+  for (i = 1; i <= 3; i++)
+    for (j = 1; j <= 3; j++)
+    {
+      C[i][j] = 0;
+      for (k = 1; k <= 3; k++)
+    	C[i][j] += A[k][i]*B[k][j];
+    }
+}
+
+void KinectPlayback::matMultABt13(double A[3+1][3+1], double B[3+1][3+1], double C[3+1][3+1])
+{//matrix multiplication A*B'=C, index starts at 1.
+int i, j, k;
+  for (i = 1; i <= 3; i++)
+    for (j = 1; j <= 3; j++)
+    {
+      C[i][j] = 0;
+      for (k = 1; k <= 3; k++)
+    	C[i][j] += A[i][k]*B[j][k];
+    }
+}
+void KinectPlayback::matMultAB13(double A[3+1][3+1], double B[3+1][3+1], double C[3+1][3+1])
+{//matrix multiplication A*B=C, index starts at 1.
+int i, j, k;
+  for (i = 1; i <= 3; i++)
+    for (j = 1; j <= 3; j++)
+    {
+      C[i][j] = 0;
+      for (k = 1; k <= 3; k++)
+    	C[i][j] += A[i][k]*B[k][j];
+    }
+}
+
+void KinectPlayback::rotZ(double fi, double rotin[3+1][3+1], double rotout[3+1][3+1])
+{//rotates rotin by fi around z, index starts at 1
+	double rotM[3+1][3+1];
+	rotM[1][1] = cos(fi); rotM[1][2] = -sin(fi); rotM[1][3] = 0.0;
+	rotM[2][1] = sin(fi); rotM[2][2] =  cos(fi); rotM[2][3] = 0.0;
+	rotM[3][1] = 0.0;     rotM[3][2] = 0.0;      rotM[3][3] = 1.0;
+
+	matMultAB13(rotin, rotM, rotout);
+}
+void KinectPlayback::rotY(double fi, double rotin[3+1][3+1], double rotout[3+1][3+1])
+{//rotates rotin by fi around y, index starts at 1
+	double rotM[3+1][3+1];
+	rotM[1][1] = cos(fi);	rotM[1][2] = 0.0; 	 rotM[1][3] = sin(fi);
+	rotM[2][1] = 0.0;		rotM[2][2] = 1.0;	 rotM[2][3] = 0.0;
+	rotM[3][1] =-sin(fi);	rotM[3][2] = 0.0;    rotM[3][3] = cos(fi);
+
+	matMultAB13(rotin, rotM, rotout);
+}
+void KinectPlayback::rotX(double fi, double rotin[3+1][3+1], double rotout[3+1][3+1])
+{//rotates rotin by fi around x, index starts at 1
+	double rotM[3+1][3+1];
+	rotM[1][1] = 1.0; rotM[1][2] = 0.0;  		rotM[1][3] = 0.0;
+	rotM[2][1] = 0.0; rotM[2][2] = cos(fi);		rotM[2][3] =-sin(fi);
+	rotM[3][1] = 0.0; rotM[3][2] = sin(fi);  	rotM[3][3] = cos(fi);
+
+	matMultAB13(rotin, rotM, rotout);
 }
 
 // Here we define which degrees of freedom are active (depending on the control mode)

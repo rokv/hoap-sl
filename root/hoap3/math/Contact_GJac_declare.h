@@ -1,2 +1,1 @@
-double  Jlist[35+1][47+1];
-
+./hoap3_Contact_GJac_declare.h

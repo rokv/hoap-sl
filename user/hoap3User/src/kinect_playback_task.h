@@ -50,6 +50,15 @@ class KinectPlayback
 	void kinect2joint(char buffer[]);
 	void control_dofs(void);
 
+	void matMultAtB13(double A[3+1][3+1], double B[3+1][3+1], double C[3+1][3+1]);
+	void matMultABt13(double A[3+1][3+1], double B[3+1][3+1], double C[3+1][3+1]);
+	void matMultAB13(double A[3+1][3+1], double B[3+1][3+1], double C[3+1][3+1]);
+	void matMultVec(double A[3+1][3+1], double B[3+1], double C[3+1]);
+	void matTmultVec(double A[3+1][3+1], double B[3+1], double C[3+1]);
+	void rotZ(double fi, double rotin[3+1][3+1], double rotout[3+1][3+1]);
+	void rotY(double fi, double rotin[3+1][3+1], double rotout[3+1][3+1]);
+	void rotX(double fi, double rotin[3+1][3+1], double rotout[3+1][3+1]);
+
 	int Kinect_collection_idx, CBi_collection_idx, Kinect_DOFs;
 };
 

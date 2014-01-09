@@ -1,5 +1,5 @@
-setenv LAB_ROOT /home/slhoap/sl-new/root
-setenv PROG_ROOT /home/slhoap/sl-new/root
+setenv LAB_ROOT /home/pa10/SL_hoap/root
+setenv PROG_ROOT /home/pa10/SL_hoap/user
  
 if ( $MACHTYPE == "i386" && `uname -a | grep -c Darwin` > 0 ) then 
    setenv MACHTYPE i386mac 

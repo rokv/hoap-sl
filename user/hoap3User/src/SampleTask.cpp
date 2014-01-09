@@ -54,8 +54,12 @@ int SampleTask::initialize()
   bzero((char *)&(target_[1]),N_DOFS*sizeof(target_[1]));
   for (int i=1; i<=N_DOFS; i++)
     {
-      target_[i] = joint_default_state[i];
+      target_[i].th = joint_default_state[i].th;
     }
+
+  target_[RA_J3].th=PI/4;
+
+  target_[LA_J3].th=PI/4;
 
   // go to the target using inverse dynamics (ID)
   if (!go_target_wait_ID(target_)) 
@@ -91,9 +95,17 @@ int SampleTask::run()
 
   // NOTE: all array indices start with 1 in SL
   for (int i=1; i<=N_DOFS; ++i) {
-    target_[i].th   = joint_default_state[i].th + amp_*sin(omega*task_time);
+	  target_[LA_J1].th = PI/2;//0.2;
+	  target_[LA_J2].th = 0;//-0.7;
+	  target_[LA_J3].th = 0;//0;//PI/2;
+	  target_[LA_J4].th = 0;//-1.8;//-1;//-1.6;
+	  target_[RA_J1].th = 0;//0.2;
+	  target_[RA_J2].th = 0;//-0.7;
+	  target_[RA_J3].th = PI/2;//0;//PI/2;
+	  target_[RA_J4].th = 0;//-1.8;//-1;//-1.6;
+	  /* target_[i].th   = joint_default_state[i].th + amp_*sin(omega*task_time);
     target_[i].thd = amp_ * omega*cos(omega*task_time);
-    target_[i].thdd = -amp_ * omega*omega*sin(omega*task_time);
+    target_[i].thdd = -amp_ * omega*omega*sin(omega*task_time);*/
   }
 
   // the following variables need to be assigned
@@ -104,7 +116,10 @@ int SampleTask::run()
     joint_des_state[i].uff = 0.0;
   }
 
-  double ball2[N_CART+1];
+
+
+
+ /* double ball2[N_CART+1];
 
   ball2[_X_]=0.1;
   ball2[_Y_]=0.1;
@@ -119,7 +134,7 @@ int SampleTask::run()
   ball1[_Z_]=0.1;
 
   sendUserGraphics((char *) "ball1", ball1, (N_CART+1)*sizeof(double));
-
+*/
 
   return TRUE;
 }

@@ -291,7 +291,10 @@ run_simulation_servo(void)
     if ( delta < 0 ){ // only print at 10Hz
       if ((int)(((double)simulation_servo_calls)/
 		(((double)simulation_servo_rate)/10.))%10 == 0) {
-	printf("-%s",joint_names[i]);
+	printf("\n-%s: th=%f lim=%f",
+			joint_names[i],
+			joint_sim_state[i].th,
+			joint_range[i][MIN_THETA]);
 	fflush(stdout);
       }
       joint_sim_state[i].u += - delta * k - joint_sim_state[i].thd * kd;
@@ -301,7 +304,10 @@ run_simulation_servo(void)
     if (delta < 0){ // only print at 10Hz
       if ((int)(((double)simulation_servo_calls)/
 		(((double)simulation_servo_rate)/10.))%10 == 0) {
-	printf("+%s",joint_names[i]);
+	printf("\n+%s: th=%f lim=%f",
+			joint_names[i],
+			joint_sim_state[i].th,
+			joint_range[i][MAX_THETA]);
 	fflush(stdout);
       }
       joint_sim_state[i].u += delta * k - joint_sim_state[i].thd * kd;

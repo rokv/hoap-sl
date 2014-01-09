@@ -67,7 +67,25 @@ OBJS_XHOAP3 = \
 	SL_main.o \
 	SL_user_common.o
 
+/*RHribar*/
+SRCS_XRHOAP3 = \
+	SL_rmain.c \
+	SL_user_common.c
+
+OBJS_XRHOAP3 = \
+	SL_rmain.o \
+	SL_user_common.o
+
+
+
+
+
 LIBS_XHOAP3 = -lSLcommon -lutility -lX11 -lm 
+
+/*RHribar*/
+LIBS_XRHOAP3 = -lSLcommon -lutility -lX11 -lm
+
+
 
 
 SRCS_XPEST = \
@@ -82,6 +100,12 @@ LIBS_XPEST = -lSLcommon -lutility -lm
 
 SOURCES  = $(SRCS_COMMON) SL_parm_estimate.c SL_user_simulation.c SL_user_openGL.c SL_main.c SL_user_task.c SL_user_sensor_proc_unix.c SL_user_motor.c SL_user_vision.c
 OBJECTS  = $(OBJS_COMMON) SL_parm_estimate.o SL_user_simulation.o SL_user_openGL.o SL_main.o SL_user_task.o SL_user_sensor_proc_unix.o SL_user_motor.o SL_user_vision.o
+
+
+/*RHribar*/
+SOURCES += SL_rmain.c SL_ruser_sensor_proc_unix.c SL_user_rmotor.c 
+OBJECTS += SL_rmain.o SL_ruser_sensor_proc_unix.o SL_user_rmotor.o
+
 
 HEADERS = 
 
@@ -99,14 +123,21 @@ KeepUpToDateCopy( SL_parm_estimate.c, $(LAB_ROOT)/SL/src, $(SRCDIR))
 
 
 ProgramListTarget( xpest, $(OBJS_XPEST), $(LIBS_XPEST) )
-
 ProgramListTarget( xhoap3, $(OBJS_XHOAP3), $(LIBS_XHOAP3) )
 ProgramListTarget( xmotor, $(OBJS_COMMON) SL_user_motor.o SL_user_sensor_proc_unix.o ,$(LIB_MOTOR) )
 ProgramListTarget( xvision, $(OBJS_COMMON) SL_user_vision.o, $(LIB_VISION) )
+/*RHribar*/
+ProgramListTarget( xrhoap3, $(OBJS_XRHOAP3), $(LIBS_XRHOAP3) )
+ProgramListTarget( xrmotor, $(OBJS_COMMON) SL_user_rmotor.o SL_ruser_sensor_proc_unix.o ,$(LIB_MOTOR) )
 
 LibraryListAddTarget( hoap3, $(OBJS_COMMON), )
 LibraryListAddTarget( hoap3_openGL, SL_user_openGL.o ,  )
 LibraryListAddTarget( hoap3_task, SL_user_task.o ,  )
 LibraryListAddTarget( hoap3_simulation, SL_user_simulation.o ,  )
+/*RHribar*/
+LibraryListAddTarget( rhoap3, $(OBJS_COMMON),)
+
+
+
 
 NormalObjRule( $(OBJECTS) )

@@ -41,12 +41,13 @@
 #include "time.h"
 #include "stddef.h"
 #include "utility.h"
-#ifdef UNIX
+/*#ifdef UNIX
 #include "sys/stat.h"
 #endif
 #ifdef VX
 #include "sys/stat.h"
-#endif
+#endif*/
+#include "sys/stat.h"
 
 static char tempfile[1000]="";
 
@@ -9097,8 +9098,8 @@ read_file_bin(char *fname, int n_col, int n_in, int n_out, int *ind_in,
 
   if (fp != NULL && fpbin != NULL) {
 
-    struct stat s;
-    struct stat sbin;
+	struct stat s;
+	struct stat sbin;
 
     /* check whether the .bin file is still up to date */
 
